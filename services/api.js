@@ -44,7 +44,7 @@ export const authAPI = {
   register: (userData) => api.post("/auth/register", userData),
   login: (credentials) => api.post("/auth/login", credentials),
   logout: () => api.post("/auth/logout"),
-  getProfile: () => api.get("/auth/me"),
+  getMe: () => api.get("/auth/me"),
   updatePassword: (passwordData) => api.put("/auth/update-password", passwordData),
   forgotPassword: (email) => api.post("/auth/forgot-password", { email }),
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
@@ -60,6 +60,7 @@ export const userAPI = {
 
 // Team API
 export const teamAPI = {
+  getTeamDashboardStats:(id)=>api.get(`/teams/dashboard/${id}`),
   getTeams: () => api.get("/teams"),
   getTeam: (id) => api.get(`/teams/${id}`),
   createTeam: (teamData) => api.post("/teams", teamData),
@@ -104,9 +105,10 @@ export const adminAPI = {
 }
 
 export const evaluatorAPI={
+  getEvaluatorDashboardStats:(evaluatorId)=>api.get(`/evaluators/${evaluatorId}`),
 inviteEvaluator:()=> api.post("/evaluators/"),
 getAllEvaluators: ()=> api.get("/evaluators/"),
-getEvaluatorById: ()=>api.get("/evaluators/:id"),
+getEvaluatorById: (id)=>api.get(`/evaluators/${id}`),
 getActiveEvaluators: ()=>api.get("/evaluators/active/"),
 }
 

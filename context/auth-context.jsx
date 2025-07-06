@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
     // Fetch current user data
     const fetchUser = async () => {
       try {
-        const response = await authAPI.getProfile()
+        const response = await authAPI.getMe()
         const userData = response.data.data.user
 
         setUser(userData)
@@ -202,7 +202,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
     role: user?.role,
-    isTeam: user?.role === "team",
+    isTeam: user?.role === "team-leader"|| user?.role==="team-leader",
     isEvaluator: user?.role === "evaluator",
   }
 

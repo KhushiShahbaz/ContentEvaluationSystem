@@ -60,11 +60,7 @@ export function RoleBasedSidebar({ role, userName, userEmail }) {
         href: `/${role}`,
         icon: Home,
       },
-      {
-        title: "Settings",
-        href: `/${role}/settings`,
-        icon: Settings,
-      },
+      
     ]
 
     if (role === "admin") {

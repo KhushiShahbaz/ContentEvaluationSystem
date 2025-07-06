@@ -1,110 +1,112 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, FileVideo, Upload } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ArrowLeft, ChevronDown, FileVideo, Upload, X } from "lucide-react"
 import Link from "next/link"
-import PropTypes from "prop-types"
-
+import { useAuth } from "@/context/auth-context"
+import { teamAPI, submissionAPI } from "@/services/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { submissionAPI } from "@/services/api"
 
-/**
- * Project Submission Page for Teams
- * Allows teams to submit project details, team members, and video
- *
- * @returns {JSX.Element} Project Submission Page component
- */
 export default function SubmitProjectPage() {
-  // Form state
+  const { user } = useAuth()
+
   const [videoLink, setVideoLink] = useState("")
   const [projectTitle, setProjectTitle] = useState("")
   const [description, setDescription] = useState("")
   const [learningOutcomes, setLearningOutcomes] = useState("")
-  const [teamMembers, setTeamMembers] = useState(["", "", "", ""])
+  const [teamMembers, setTeamMembers] = useState([])
   const [selectedFile, setSelectedFile] = useState(null)
   const [activeTab, setActiveTab] = useState("details")
+  const [team, setTeam] = useState(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
-  /**
-   * Handle team member name change
-   *
-   * @param {number} index - Index of the team member in the array
-   * @param {string} value - New name value
-   */
-  const handleTeamMemberChange = (index, value) => {
-    const newTeamMembers = [...teamMembers]
-    newTeamMembers[index] = value
-    setTeamMembers(newTeamMembers)
-  }
+  useEffect(() => {
+    const fetchTeam = async () => {
+      if (!user?.teamId) return
+      try {
+        const res = await teamAPI.getTeam(user.teamId)
+        const teamData = res.data.data
+        setTeam(teamData)
 
-  /**
-   * Handle file selection for video upload
-   *
-   * @param {Event} e - File input change event
-   */
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0])
-    }
-  }
-
-  /**
-   * Handle form submission
-   * Currently just logs the data, would connect to API in production
-   *
-   * @param {Event} e - Form submission event
-   */
-  const handleSubmit = async(e) => {
-    if (e) e.preventDefault()
-
-    // Validate required fields
-    if (!projectTitle) {
-      alert("Please enter a project title")
-      return
+        setProjectTitle(teamData.projectTitle || "")
+        setDescription(teamData.projectDescription || "")
+        setTeamMembers(
+          (teamData.members || []).map(member => ({
+            label: member.name,
+            value: member._id,
+          }))
+        )
+      } catch (err) {
+        console.error("Error fetching team:", err)
+      }
     }
 
-    if (!videoLink && !selectedFile) {
-      alert("Please provide either a video link or upload a video file")
-      return
+    fetchTeam()
+  }, [user])
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
     }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
-    // Log form data (would submit to API in production)
-    console.log({
-      projectTitle,
-      videoLink,
-      description,
-      learningOutcomes,
-      teamMembers: teamMembers.filter((member) => member.trim() !== ""),
-      videoFile: selectedFile ? selectedFile.name : null,
-    })
+  const handleSubmit = async (e) => {
+    e.preventDefault()
 
-    const formData = new FormData()
-    formData.append("projectTitle", projectTitle)
-    formData.append("videoLink", videoLink)
-    formData.append("description", description)
-    formData.append("learningOutcomes", learningOutcomes)
-    teamMembers.forEach((m, i) => formData.append(`teamMembers[${i}]`, m))
+    if (!projectTitle) return alert("Please enter a project title")
+    if (!videoLink && !selectedFile) return alert("Please provide a video link or file")
+
     try {
-      await submissionAPI.createSubmission({projectTitle,description,learningOutcomes,teamMembers,videoLink})
+      await submissionAPI.createSubmission({
+        projectTitle,
+        description,
+        learningOutcomes,
+        videoLink,
+        teamMembers: teamMembers.map(m => m.value),
+      })
       alert("Project submitted successfully!")
     } catch (error) {
       console.error("Submission failed:", error)
       alert("Failed to submit project.")
     }
-
-    // alert("Project submitted successfully!")
   }
 
-  const tabOrder = ["details", "team", "video"]
-
   const handleTabChange = () => {
-    const currentIndex = tabOrder.indexOf(activeTab)
-    if (currentIndex < tabOrder.length - 1) {
-      setActiveTab(tabOrder[currentIndex + 1])
+    const order = ["details", "team", "video"]
+    const currentIndex = order.indexOf(activeTab)
+    if (currentIndex < order.length - 1) {
+      setActiveTab(order[currentIndex + 1])
+    }
+  }
+
+  const toggleOption = (option) => {
+    const exists = teamMembers.find((m) => m.value === option.value)
+    if (exists) {
+      setTeamMembers(teamMembers.filter((m) => m.value !== option.value))
+    } else {
+      setTeamMembers([...teamMembers, option])
+    }
+  }
+
+  const removeOption = (option) => {
+    setTeamMembers(teamMembers.filter((m) => m.value !== option.value))
+  }
+
+  const isSelected = (option) => teamMembers.some((m) => m.value === option.value)
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0])
     }
   }
 
@@ -120,130 +122,128 @@ export default function SubmitProjectPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-  <TabsList>
-    <TabsTrigger value="details">Project Details</TabsTrigger>
-    <TabsTrigger value="team">Team Members</TabsTrigger>
-    <TabsTrigger value="video">Video Submission</TabsTrigger>
-  </TabsList>
+        <TabsList>
+          <TabsTrigger value="details">Project Details</TabsTrigger>
+          <TabsTrigger value="team">Team Members</TabsTrigger>
+          <TabsTrigger value="video">Video Submission</TabsTrigger>
+        </TabsList>
 
-        {/* Project Details Tab */}
+        {/* Details Tab */}
         <TabsContent value="details" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Project Information</CardTitle>
               <CardDescription>Provide details about your project</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project-title">Project Title</Label>
-                  <Input
-                    id="project-title"
-                    placeholder="Enter your project title"
-                    value={projectTitle}
-                    onChange={(e) => setProjectTitle(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Project Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe your project in detail"
-                    className="min-h-[150px]"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="learning-outcomes">Learning Outcomes</Label>
-                  <Textarea
-                    id="learning-outcomes"
-                    placeholder="List the learning outcomes achieved through this project"
-                    className="min-h-[100px]"
-                    value={learningOutcomes}
-                    onChange={(e) => setLearningOutcomes(e.target.value)}
-                  />
-                </div>
-              </form>
+            <CardContent className="space-y-4">
+              <Label>Project Title</Label>
+              <Input
+                value={projectTitle}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                placeholder="Enter project title"
+              />
+              <Label>Project Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-[120px]"
+                placeholder="Describe your project"
+              />
+              <Label>Learning Outcomes</Label>
+              <Textarea
+                value={learningOutcomes}
+                onChange={(e) => setLearningOutcomes(e.target.value)}
+                className="min-h-[100px]"
+                placeholder="What did your team learn?"
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Team Members Tab */}
-        <TabsContent value="team" className="space-y-4">
+        {/* Team Tab */}
+        <TabsContent value="team">
           <Card>
             <CardHeader>
               <CardTitle>Team Members</CardTitle>
-              <CardDescription>Add your team members (up to 5 including team lead)</CardDescription>
+              <CardDescription>Select your team members</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Team Lead (You)</Label>
-                  <Input value="Team Lead" disabled />
+            <CardContent className="space-y-4">
+              <div className="relative" ref={dropdownRef}>
+                <div
+                  className="w-full border rounded-md px-3 py-2 bg-white text-sm shadow-sm cursor-pointer flex flex-wrap items-center gap-2"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  {teamMembers.length === 0 && (
+                    <span className="text-muted-foreground text-sm">Select team members</span>
+                  )}
+                  {teamMembers.map((member) => (
+                    <span
+                      key={member.value}
+                      className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {member.label}
+                      <X
+                        size={12}
+                        className="cursor-pointer"
+                        onClick={() => removeOption(member)}
+                      />
+                    </span>
+                  ))}
+                  <ChevronDown size={16} className="ml-auto text-muted-foreground" />
                 </div>
 
-                {teamMembers.map((member, index) => (
-                  <div key={index} className="space-y-2">
-                    <Label htmlFor={`team-member-${index}`}>Team Member {index + 1}</Label>
-                    <Input
-                      id={`team-member-${index}`}
-                      placeholder={`Enter name of team member ${index + 1}`}
-                      value={member}
-                      onChange={(e) => handleTeamMemberChange(index, e.target.value)}
-                    />
-                  </div>
-                ))}
+                {dropdownOpen && (
+                  <ul className="absolute z-10 mt-1 w-full bg-white border rounded-md shadow-md max-h-60 overflow-y-auto text-sm">
+                    {team?.members?.map((option) => {
+                      const o = { label: option.name, value: option._id }
+                      return (
+                        <li
+                          key={o.value}
+                          onClick={() => toggleOption(o)}
+                          className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                            isSelected(o) ? "bg-blue-100 font-semibold text-blue-800" : ""
+                          }`}
+                        >
+                          {o.label}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Video Submission Tab */}
-        <TabsContent value="video" className="space-y-4">
+        {/* Video Tab */}
+        <TabsContent value="video">
           <Card>
             <CardHeader>
               <CardTitle>Video Submission</CardTitle>
-              <CardDescription>Submit your project video (YouTube or Vimeo link)</CardDescription>
+              <CardDescription>Paste a link or upload your video file</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="video-link">Video Link</Label>
-                <Input
-                  id="video-link"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={videoLink}
-                  onChange={(e) => setVideoLink(e.target.value)}
-                />
-              </div>
+            <CardContent className="space-y-4">
+              <Label>Video Link</Label>
+              <Input
+                value={videoLink}
+                onChange={(e) => setVideoLink(e.target.value)}
+                placeholder="https://youtube.com/..."
+              />
 
               <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-4">
                 <div className="rounded-full bg-muted p-3">
                   <FileVideo className="h-6 w-6" />
                 </div>
-                <div className="text-center">
-                  <p className="font-medium">Upload a video file</p>
-                  <p className="text-sm text-muted-foreground">Or paste a YouTube or Vimeo link above</p>
-                </div>
-                <div>
-                  <input type="file" id="video-file" className="hidden" accept="video/*" onChange={handleFileChange} />
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => document.getElementById("video-file").click()}
-                  >
-                    <Upload className="h-4 w-4" />
-                    Choose File
-                  </Button>
-                </div>
+                <p className="font-medium">Upload a video file</p>
+                <p className="text-sm text-muted-foreground">Or paste a YouTube or Vimeo link above</p>
+                <input type="file" id="video-file" className="hidden" accept="video/*" onChange={handleFileChange} />
+                <Button variant="outline" onClick={() => document.getElementById("video-file").click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose File
+                </Button>
                 {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
               </div>
-
-              {videoLink && (
-                <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-                  <p className="text-muted-foreground">Video preview would appear here</p>
-                </div>
-              )}
             </CardContent>
             <CardFooter>
               <Button onClick={handleSubmit} className="w-full">
@@ -255,16 +255,10 @@ export default function SubmitProjectPage() {
       </Tabs>
 
       <div className="flex justify-between">
-       
         <Button onClick={handleTabChange} disabled={activeTab === "video"}>
-  Next
-</Button>
+          Next
+        </Button>
       </div>
     </div>
   )
-}
-
-// Prop validation for any future props
-SubmitProjectPage.propTypes = {
-  initialData: PropTypes.object,
 }

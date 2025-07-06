@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Mail,
@@ -13,110 +13,132 @@ import {
   Users,
   BadgeCheck,
   Code2,
-} from "lucide-react"
+  Pencil,
+} from "lucide-react";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { adminAPI, authAPI } from "@/services/api"
-import { useEffect, useState } from "react"
-
-// Fake dynamic user from backend
-const user = {
-  name: "Sana Malik",
-  email: "sana@example.com",
-  phone: "03001234567",
-  role: "evaluator", // "team-leader" or "team-member"
-  approved: false,
-
-  // For evaluator
-  qualification: "MSc CS",
-  experience: "5 years",
-  address: "Karachi",
-
-  // For team roles
-  projectTitle: "Smart Health App",
-  projectDescription: "AI-powered health diagnostic tool",
-  teamCode: "ABC123",
-}
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { userAPI } from "@/services/api";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/auth-context";
+import { Button } from "./ui/button";
+import EditProfileModal from "./editProfileModal"
 
 export default function ProfilePage() {
-  const[error,setError]=useState("")
-  const[loading, setLoading]=useState(false)
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
-
-    fetchProfileData()
-  }, [])
-
-
+    fetchProfileData();
+  }, []);
 
   const fetchProfileData = async () => {
     try {
-      setLoading(true)
-
-     
-      const profileResponse = await authAPI.getProfile()
-      console.log(profileResponse)
-    
-      setLoading(false)
+      setLoading(true);
+      const profileResponse = await userAPI.getUser(user._id);
+      setUserProfile(profileResponse.data);
+      setFormData(profileResponse.data);
+console.log(profileResponse)
+      setLoading(false);
     } catch (err) {
-      console.error("Error fetching dashboard data:", err)
-      setError("Failed to load dashboard data. Please try again.")
-      setLoading(false)
+      console.error("Error fetching dashboard data:", err);
+      setError("Failed to load dashboard data. Please try again.");
+      setLoading(false);
     }
-  }
+  };
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-xl shadow-md">
-        <CardHeader className="flex flex-col items-center space-y-3 text-center">
-          <Avatar className="h-20 w-20">
-            <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <CardTitle className="text-2xl font-bold">{user.name}</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            {user.role === "evaluator" ? (
-              <Shield className="inline h-4 w-4 mr-1" />
-            ) : (
-              <Users className="inline h-4 w-4 mr-1" />
-            )}
-            {formatRole(user.role)}
-
-            {user.role === "evaluator" && (
-              <Badge variant={user.approved ? "default" : "destructive"} className="ml-2">
-                {user.approved ? "Approved" : "Pending"}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <ProfileRow icon={<Mail className="h-4 w-4" />} label="Email" value={user.email} />
-          <ProfileRow icon={<Phone className="h-4 w-4" />} label="Phone" value={user.phone} />
-
-          {user.role === "evaluator" && (
-            <>
-              <ProfileRow icon={<GraduationCap className="h-4 w-4" />} label="Qualification" value={user.qualification} />
-              <ProfileRow icon={<Briefcase className="h-4 w-4" />} label="Experience" value={user.experience} />
-              <ProfileRow icon={<MapPin className="h-4 w-4" />} label="Address" value={user.address} />
-            </>
+    <div className="w-full max-w-lg mx-auto p-4 ">
+    <Card className="rounded-2xl">
+      <CardHeader className="text-center space-y-2">
+        <Avatar className="mx-auto h-20 w-20">
+          <AvatarFallback className="capitalize text-xl">
+            {userProfile.name?.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <CardTitle className="text-xl font-semibold capitalize flex items-center justify-center gap-2">
+          {userProfile.name}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-muted"
+            onClick={() => setShowEditModal(true)}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit Profile</span>
+          </Button>
+        </CardTitle>
+  
+        <div className="text-sm text-muted-foreground">
+          {userProfile.role === "evaluator" ? (
+            <Shield className="inline h-4 w-4 mr-1" />
+          ) : (
+            <Users className="inline h-4 w-4 mr-1" />
           )}
-
-          {user.role === "team-leader" && (
-            <>
-              <ProfileRow icon={<ClipboardList className="h-4 w-4" />} label="Project Title" value={user.projectTitle} />
-              <ProfileRow icon={<FileText className="h-4 w-4" />} label="Project Description" value={user.projectDescription} />
-              <ProfileRow icon={<Code2 className="h-4 w-4" />} label="Team Code" value={user.teamCode} />
-            </>
+          {formatRole(userProfile.role)}
+  
+          {userProfile.role === "evaluator" && (
+            <Badge
+              variant={userProfile.isApproved ? "default" : "destructive"}
+              className="ml-2"
+            >
+              {userProfile.isApproved ? "Approved" : "Pending"}
+            </Badge>
           )}
+        </div>
+      </CardHeader>
+  
+      <CardContent className="space-y-4">
+        <ProfileRow icon={<Mail className="h-4 w-4" />} label="Email" value={userProfile.email} />
+  
+        {userProfile.role === "evaluator" && (
+          <>
+            <ProfileRow icon={<GraduationCap className="h-4 w-4" />} label="Qualification" value={userProfile.evaluatorId.qualification} />
+            <ProfileRow icon={<Briefcase className="h-4 w-4" />} label="Experience" value={userProfile.evaluatorId.experience} />
+            <ProfileRow icon={<MapPin className="h-4 w-4" />} label="Address" value={userProfile.evaluatorId.address} />
+          </>
+        )}
+  
+        {userProfile.role === "team" && (
+          <>
+            <ProfileRow icon={<ClipboardList className="h-4 w-4" />} label="Project Title" value={userProfile.teamId.projectTitle} />
+            <ProfileRow icon={<FileText className="h-4 w-4" />} label="Project Description" value={userProfile.teamId.projectDescription} />
+            <ProfileRow icon={<Code2 className="h-4 w-4" />} label="Team Code" value={userProfile.teamId.teamCode} />
+            <ProfileRow
+  icon={<Code2 className="h-4 w-4" />}
+  label="Team Members"
+  value={userProfile.teamId?.members?.map((member) => member.name).join(", ")}
+/>
 
-          {user.role === "team-member" && (
-            <ProfileRow icon={<Code2 className="h-4 w-4" />} label="Team Code" value={user.teamCode} />
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+          </>
+        )}
+      </CardContent>
+    </Card>
+  
+    {showEditModal && (
+      <EditProfileModal
+        formData={formData}
+        setFormData={setFormData}
+        role={userProfile.role}
+        onClose={() => setShowEditModal(false)}
+        onSave={async () => {
+          try {
+            await userAPI.updateUser(user._id, formData);
+            await fetchProfileData();
+            setShowEditModal(false);
+          } catch (err) {
+            console.error("Update failed:", err);
+          }
+        }}
+      />
+    )}
+  </div>
+  
+  );
 }
 
 function ProfileRow({ icon, label, value }) {
@@ -128,12 +150,12 @@ function ProfileRow({ icon, label, value }) {
         <div className="text-muted-foreground">{value || "—"}</div>
       </div>
     </div>
-  )
+  );
 }
 
 function formatRole(role) {
-  if (role === "evaluator") return "Evaluator"
-  if (role === "team-leader") return "Team Leader"
-  if (role === "team-member") return "Team Member"
-  return "User"
+  if (role === "evaluator") return "Evaluator";
+  if (role === "team-leader") return "Team Leader";
+  if (role === "team-member") return "Team Member";
+  return "User";
 }

@@ -62,7 +62,7 @@ export function UserNav({ userName, userEmail }) {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-         {role !== "admin" && ( <DropdownMenuItem asChild>
+         {role !== "admin" && ( <DropdownMenuItem asChild className="cursor-pointer">
             <Link href={`/${role}/profile`}>
               <div className="flex items-center">
                 <User className="mr-2 h-4 w-4" />
@@ -71,15 +71,11 @@ export function UserNav({ userName, userEmail }) {
             </Link>
           </DropdownMenuItem>)}
 
-          <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

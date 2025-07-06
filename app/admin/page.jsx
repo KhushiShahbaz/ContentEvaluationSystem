@@ -56,39 +56,39 @@ export default function AdminDashboardPage() {
     fetchDashboardData()
   }, [])
 
-  const handleApproveEvaluator = async (id) => {
-    try {
-      await adminAPI.approveEvaluator(id)
-      setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
-      setStats((prev) => ({
-        ...prev,
-        evaluators: {
-          ...prev.evaluators,
-          pending: prev.evaluators.pending - 1,
-        },
-      }))
-    } catch (err) {
-      console.error("Error approving evaluator:", err)
-      setError("Failed to approve evaluator. Please try again.")
-    }
-  }
+  // const handleApproveEvaluator = async (id) => {
+  //   try {
+  //     await adminAPI.approveEvaluator(id)
+  //     setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
+  //     setStats((prev) => ({
+  //       ...prev,
+  //       evaluators: {
+  //         ...prev.evaluators,
+  //         pending: prev.evaluators.pending - 1,
+  //       },
+  //     }))
+  //   } catch (err) {
+  //     console.error("Error approving evaluator:", err)
+  //     setError("Failed to approve evaluator. Please try again.")
+  //   }
+  // }
 
-  const handleRejectEvaluator = async (id) => {
-    try {
-      await adminAPI.rejectEvaluator(id)
-      setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
-      setStats((prev) => ({
-        ...prev,
-        evaluators: {
-          ...prev.evaluators,
-          pending: prev.evaluators.pending - 1,
-        },
-      }))
-    } catch (err) {
-      console.error("Error rejecting evaluator:", err)
-      setError("Failed to reject evaluator. Please try again.")
-    }
-  }
+  // const handleRejectEvaluator = async (id) => {
+  //   try {
+  //     await adminAPI.rejectEvaluator(id)
+  //     setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
+  //     setStats((prev) => ({
+  //       ...prev,
+  //       evaluators: {
+  //         ...prev.evaluators,
+  //         pending: prev.evaluators.pending - 1,
+  //       },
+  //     }))
+  //   } catch (err) {
+  //     console.error("Error rejecting evaluator:", err)
+  //     setError("Failed to reject evaluator. Please try again.")
+  //   }
+  // }
 
   return (
         <div className="space-y-6">

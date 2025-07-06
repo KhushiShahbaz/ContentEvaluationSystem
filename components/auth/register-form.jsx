@@ -129,7 +129,7 @@ export function RegisterForm() {
                   >
                     <Users className="mb-3 h-6 w-6" />
                     <div className="space-y-1 text-center">
-                      <p className="text-sm font-medium leading-none">Team Member</p>
+                      <p className="text-sm font-medium leading-none">Team Member or Team Leader</p>
                       <p className="text-xs text-muted-foreground">
                         Submit projects, view feedback, and check rankings
                       </p>
