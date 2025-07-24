@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Search,
   Filter,
@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { submissionAPI } from "@/services/api"
 
 /**
  * Team Submissions Page for Administrators
@@ -56,96 +57,7 @@ export default function TeamSubmissionsPage() {
   const [selectedEvaluators, setSelectedEvaluators] = useState([])
 
   // Sample team submissions data
-  const teamSubmissions = [
-    {
-      id: 1,
-      teamName: "Team Alpha",
-      teamLead: "John Smith",
-      teamMembers: ["John Smith", "Sarah Johnson", "Mike Chen", "Lisa Wang"],
-      projectTitle: "AI-Powered Content Analysis Platform",
-      description:
-        "An intelligent platform that analyzes content using machine learning algorithms to provide insights and recommendations for content creators.",
-      learningOutcomes: [
-        "Understanding of natural language processing",
-        "Implementation of machine learning models",
-        "Building scalable web applications",
-        "User experience design for complex data visualization",
-      ],
-      videoLink: "https://youtube.com/watch?v=example1",
-      submissionDate: "2024-01-15",
-      status: "pending-assignment",
-      assignedEvaluators: [],
-      evaluationStatus: "not-started",
-      averageScore: null,
-      tags: ["AI", "Machine Learning", "Web Development"],
-    },
-    {
-      id: 2,
-      teamName: "Team Beta",
-      teamLead: "Emily Rodriguez",
-      teamMembers: ["Emily Rodriguez", "David Kim", "Anna Thompson", "James Wilson"],
-      projectTitle: "Virtual Learning Environment",
-      description:
-        "A comprehensive virtual learning platform with interactive features, real-time collaboration, and adaptive learning algorithms.",
-      learningOutcomes: [
-        "Educational technology implementation",
-        "Real-time communication systems",
-        "Adaptive learning algorithms",
-        "User interface design for education",
-      ],
-      videoLink: "https://youtube.com/watch?v=example2",
-      submissionDate: "2024-01-14",
-      status: "assigned",
-      assignedEvaluators: ["Dr. Wilson", "Prof. Anderson", "Dr. Kim"],
-      evaluationStatus: "in-progress",
-      averageScore: 89,
-      tags: ["Education", "Virtual Reality", "Collaboration"],
-    },
-    {
-      id: 3,
-      teamName: "Team Gamma",
-      teamLead: "Michael Brown",
-      teamMembers: ["Michael Brown", "Jessica Lee", "Robert Taylor"],
-      projectTitle: "Smart Health Monitoring System",
-      description:
-        "IoT-based health monitoring system that tracks vital signs and provides real-time health insights using wearable devices.",
-      learningOutcomes: [
-        "IoT device integration",
-        "Real-time data processing",
-        "Health data analytics",
-        "Mobile application development",
-      ],
-      videoLink: "https://youtube.com/watch?v=example3",
-      submissionDate: "2024-01-13",
-      status: "assigned",
-      assignedEvaluators: ["Dr. Rodriguez", "Prof. Chen", "Dr. Anderson"],
-      evaluationStatus: "completed",
-      averageScore: 92,
-      tags: ["IoT", "Healthcare", "Mobile Development"],
-    },
-    {
-      id: 4,
-      teamName: "Team Delta",
-      teamLead: "Sophie Martinez",
-      teamMembers: ["Sophie Martinez", "Alex Johnson", "Ryan Davis", "Maria Garcia", "Tom Wilson"],
-      projectTitle: "Sustainable Energy Management Platform",
-      description:
-        "A platform for monitoring and optimizing energy consumption in smart buildings using AI and IoT sensors.",
-      learningOutcomes: [
-        "Sustainable technology development",
-        "Energy optimization algorithms",
-        "IoT sensor networks",
-        "Data visualization and analytics",
-      ],
-      videoLink: "https://youtube.com/watch?v=example4",
-      submissionDate: "2024-01-12",
-      status: "under-review",
-      assignedEvaluators: ["Dr. Kim", "Prof. Anderson"],
-      evaluationStatus: "in-progress",
-      averageScore: 87,
-      tags: ["Sustainability", "IoT", "Energy Management"],
-    },
-  ]
+  const [teamSubmissions,setTeamSubmission] = useState([])
 
   // Available evaluators for assignment
   const availableEvaluators = [
@@ -155,15 +67,6 @@ export default function TeamSubmissionsPage() {
     { id: 4, name: "Dr. Emily Rodriguez", expertise: "Data Science, Analytics" },
     { id: 5, name: "Prof. Michael Chen", expertise: "Software Engineering, Cloud Computing" },
   ]
-
-  // Statistics
-  const stats = {
-    totalSubmissions: teamSubmissions.length,
-    pendingAssignment: teamSubmissions.filter((s) => s.status === "pending-assignment").length,
-    assigned: teamSubmissions.filter((s) => s.status === "assigned").length,
-    underReview: teamSubmissions.filter((s) => s.status === "under-review").length,
-    completed: teamSubmissions.filter((s) => s.evaluationStatus === "completed").length,
-  }
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -216,6 +119,39 @@ export default function TeamSubmissionsPage() {
     alert("Submissions data exported successfully!")
   }
 
+  useEffect(() => {
+    const fetchTeamAndSubmission = async () => {
+      try {
+        const res = await submissionAPI.getSubmissions()
+        const submissionData = res?.data?.data || []
+  
+        const formattedSubmissions = submissionData.map((submission) => {
+          return {
+            id: submission._id,
+            projectTitle: submission.projectTitle,
+            description: submission.description,
+            status: submission.status || "pending",
+            evaluationStatus: "not-started", // you can change this logic if backend provides it
+            submissionDate: new Date(submission.submittedAt).toLocaleDateString(),
+            teamName: submission.teamId?.name || "N/A",
+            teamLead: submission.submittedBy || "Unknown",
+            teamMembers: submission.teamMembers || [],
+            videoLink: submission.videoLink,
+            averageScore: submission.averageScore,
+            assignedEvaluators: submission.evaluations?.map((e) => e.evaluatorName) || [],
+          }
+        })
+  
+        setTeamSubmission(formattedSubmissions)
+      } catch (err) {
+        console.warn("No submission found.")
+      }
+    }
+  
+    fetchTeamAndSubmission()
+  }, [])
+  
+
   const filteredSubmissions = teamSubmissions.filter(
     (submission) =>
       submission.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,54 +172,6 @@ export default function TeamSubmissionsPage() {
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-            <FileVideo className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSubmissions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Assignment</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendingAssignment}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Under Review</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.underReview}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Search and Filter */}
       <div className="flex gap-4">
@@ -366,14 +254,7 @@ export default function TeamSubmissionsPage() {
                     </div>
                   </div>
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2">
-                    {submission.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+                 
 
                   {/* Assigned Evaluators */}
                   {submission.assignedEvaluators.length > 0 && (

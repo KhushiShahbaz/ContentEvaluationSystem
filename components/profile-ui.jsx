@@ -2,8 +2,6 @@
 
 import {
   Mail,
-  Phone,
-  User,
   Shield,
   GraduationCap,
   Briefcase,
@@ -11,9 +9,8 @@ import {
   FileText,
   ClipboardList,
   Users,
-  BadgeCheck,
   Code2,
-  Pencil,
+  
 } from "lucide-react";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -22,16 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { userAPI } from "@/services/api";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { Button } from "./ui/button";
-import EditProfileModal from "./editProfileModal"
 
 export default function ProfilePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const [userProfile, setUserProfile] = useState({});
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     fetchProfileData();
@@ -41,9 +34,7 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       const profileResponse = await userAPI.getUser(user._id);
-      setUserProfile(profileResponse.data);
-      setFormData(profileResponse.data);
-console.log(profileResponse)
+      setUserProfile(profileResponse?.data?.user);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
@@ -62,15 +53,7 @@ console.log(profileResponse)
         </Avatar>
         <CardTitle className="text-xl font-semibold capitalize flex items-center justify-center gap-2">
           {userProfile.name}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full hover:bg-muted"
-            onClick={() => setShowEditModal(true)}
-          >
-            <Pencil className="h-4 w-4" />
-            <span className="sr-only">Edit Profile</span>
-          </Button>
+         
         </CardTitle>
   
         <div className="text-sm text-muted-foreground">
@@ -119,23 +102,7 @@ console.log(profileResponse)
       </CardContent>
     </Card>
   
-    {showEditModal && (
-      <EditProfileModal
-        formData={formData}
-        setFormData={setFormData}
-        role={userProfile.role}
-        onClose={() => setShowEditModal(false)}
-        onSave={async () => {
-          try {
-            await userAPI.updateUser(user._id, formData);
-            await fetchProfileData();
-            setShowEditModal(false);
-          } catch (err) {
-            console.error("Update failed:", err);
-          }
-        }}
-      />
-    )}
+    
   </div>
   
   );

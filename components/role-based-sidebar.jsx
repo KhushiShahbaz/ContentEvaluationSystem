@@ -55,11 +55,7 @@ export function RoleBasedSidebar({ role, userName, userEmail }) {
   // Navigation items based on user role
   const getNavItems = (role) => {
     const commonItems = [
-      {
-        title: "Dashboard",
-        href: `/${role}`,
-        icon: Home,
-      },
+     
       
     ]
 

@@ -25,15 +25,42 @@ export default function SubmitProjectPage() {
   const [team, setTeam] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const [id, setId] = useState('')
+  const tabOrder = ["details", "team", "video"]
 
   useEffect(() => {
-    const fetchTeam = async () => {
+    const fetchTeamAndSubmission = async () => {
       if (!user?.teamId) return
+  
+      try {
+        // Try to fetch existing submission
+        const res = await submissionAPI.getSubmission(user.teamId)
+        const submissionData = res?.data?.data
+  
+        if (submissionData) {
+          setId(submissionData?._id)
+          setTeam(submissionData.teamId) // because you populated it
+          setProjectTitle(submissionData.projectTitle || "")
+          setDescription(submissionData.description || "")
+          setLearningOutcomes(submissionData.learningOutcomes || "")
+          setVideoLink(submissionData.videoLink || "")
+          setTeamMembers(
+            (submissionData.teamId?.members || []).map(member => ({
+              label: member.name,
+              value: member._id,
+            }))
+          )
+          return
+        }
+      } catch (err) {
+        console.warn("No submission found. Falling back to team info.")
+      }
+  
+      // If no submission, fallback to raw team data
       try {
         const res = await teamAPI.getTeam(user.teamId)
         const teamData = res.data.data
         setTeam(teamData)
-
         setProjectTitle(teamData.projectTitle || "")
         setDescription(teamData.projectDescription || "")
         setTeamMembers(
@@ -46,9 +73,10 @@ export default function SubmitProjectPage() {
         console.error("Error fetching team:", err)
       }
     }
-
-    fetchTeam()
+  
+    fetchTeamAndSubmission()
   }, [user])
+  
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -65,8 +93,18 @@ export default function SubmitProjectPage() {
 
     if (!projectTitle) return alert("Please enter a project title")
     if (!videoLink && !selectedFile) return alert("Please provide a video link or file")
-
+console.log(id,"id")
     try {
+      if(id){
+        await submissionAPI.updateSubmission(id,{
+          projectTitle,
+          description,
+          learningOutcomes,
+          videoLink,
+          teamMembers: teamMembers.map(m => m.value),
+        })
+        alert("Project updated successfully!")
+      }else{
       await submissionAPI.createSubmission({
         projectTitle,
         description,
@@ -74,18 +112,24 @@ export default function SubmitProjectPage() {
         videoLink,
         teamMembers: teamMembers.map(m => m.value),
       })
-      alert("Project submitted successfully!")
+      alert("Project submitted successfully!")}
     } catch (error) {
       console.error("Submission failed:", error)
       alert("Failed to submit project.")
     }
   }
 
-  const handleTabChange = () => {
-    const order = ["details", "team", "video"]
-    const currentIndex = order.indexOf(activeTab)
-    if (currentIndex < order.length - 1) {
-      setActiveTab(order[currentIndex + 1])
+  const handleNext = () => {
+    const currentIndex = tabOrder.indexOf(activeTab)
+    if (currentIndex < tabOrder.length - 1) {
+      setActiveTab(tabOrder[currentIndex + 1])
+    }
+  }
+
+  const handlePrevious = () => {
+    const currentIndex = tabOrder.indexOf(activeTab)
+    if (currentIndex > 0) {
+      setActiveTab(tabOrder[currentIndex - 1])
     }
   }
 
@@ -113,11 +157,7 @@ export default function SubmitProjectPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/team">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+       
         <h1 className="text-2xl font-bold">Submit Project</h1>
       </div>
 
@@ -201,9 +241,8 @@ export default function SubmitProjectPage() {
                         <li
                           key={o.value}
                           onClick={() => toggleOption(o)}
-                          className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
-                            isSelected(o) ? "bg-blue-100 font-semibold text-blue-800" : ""
-                          }`}
+                          className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${isSelected(o) ? "bg-blue-100 font-semibold text-blue-800" : ""
+                            }`}
                         >
                           {o.label}
                         </li>
@@ -231,19 +270,6 @@ export default function SubmitProjectPage() {
                 placeholder="https://youtube.com/..."
               />
 
-              <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-4">
-                <div className="rounded-full bg-muted p-3">
-                  <FileVideo className="h-6 w-6" />
-                </div>
-                <p className="font-medium">Upload a video file</p>
-                <p className="text-sm text-muted-foreground">Or paste a YouTube or Vimeo link above</p>
-                <input type="file" id="video-file" className="hidden" accept="video/*" onChange={handleFileChange} />
-                <Button variant="outline" onClick={() => document.getElementById("video-file").click()}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Choose File
-                </Button>
-                {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
-              </div>
             </CardContent>
             <CardFooter>
               <Button onClick={handleSubmit} className="w-full">
@@ -255,9 +281,21 @@ export default function SubmitProjectPage() {
       </Tabs>
 
       <div className="flex justify-between">
-        <Button onClick={handleTabChange} disabled={activeTab === "video"}>
-          Next
-        </Button>
+        {activeTab !== "details" ? (
+          <Button variant="outline" onClick={handlePrevious}>
+            Previous
+          </Button>
+        ) : (
+          <div />
+        )}
+
+        {activeTab !== "video" ? (
+          <Button onClick={handleNext}>
+            Next
+          </Button>
+        ) : (
+          <div />
+        )}
       </div>
     </div>
   )

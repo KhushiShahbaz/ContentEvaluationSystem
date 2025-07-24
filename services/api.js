@@ -109,7 +109,7 @@ export const evaluatorAPI={
 inviteEvaluator:()=> api.post("/evaluators/"),
 getAllEvaluators: ()=> api.get("/evaluators/"),
 getEvaluatorById: (id)=>api.get(`/evaluators/${id}`),
-getActiveEvaluators: ()=>api.get("/evaluators/active/"),
+getActiveEvaluators: ()=>api.get("/evaluators/active"),
 }
 
 export default api
