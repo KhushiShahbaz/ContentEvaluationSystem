@@ -7,18 +7,14 @@ import {
   Eye,
   Users,
   Calendar,
-  FileVideo,
+  File,
   Download,
   UserPlus,
-  Clock,
-  CheckCircle,
   AlertCircle,
-  Play,
 } from "lucide-react"
 import Link from "next/link"
-
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -44,12 +40,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { submissionAPI } from "@/services/api"
 
-/**
- * Team Submissions Page for Administrators
- * Allows admins to view, manage, and assign evaluators to team submissions
- *
- * @returns {JSX.Element} Team Submissions Page component
- */
 export default function TeamSubmissionsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSubmission, setSelectedSubmission] = useState(null)
@@ -288,12 +278,12 @@ export default function TeamSubmissionsPage() {
                       </Link>
                     </Button>
 
-                    <Button variant="outline" className="w-full" size="sm" asChild>
-                      <a href={submission.videoLink} target="_blank" rel="noopener noreferrer">
-                        <Play className="mr-2 h-4 w-4" />
-                        Watch Video
-                      </a>
-                    </Button>
+                    {/* <Button variant="outline" className="w-full" size="sm" asChild>
+                      <Link onClick={()=>{setIsAssignDialogOpen(true)}}>
+                        <File className="mr-2 h-4 w-4" />
+                       Assign Evaluator
+                      </Link>
+                    </Button> */}
 
                     {submission.status === "pending-assignment" && (
                       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
@@ -371,7 +361,7 @@ export default function TeamSubmissionsPage() {
         ))}
       </div>
 
-      {filteredSubmissions.length === 0 && (
+      {/* {filteredSubmissions.length === 0 && (
         <Card>
           <CardContent className="flex items-center justify-center p-8">
             <div className="text-center text-muted-foreground">
@@ -380,7 +370,7 @@ export default function TeamSubmissionsPage() {
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
     </div>
   )
 }

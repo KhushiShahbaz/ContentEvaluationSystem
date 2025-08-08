@@ -5,51 +5,24 @@ import PropTypes from "prop-types"
 import {
   BarChart3,
   CheckCircle,
-  ChevronDown,
   ClipboardList,
   FileVideo,
   Home,
-  LogOut,
   MessageSquare,
-  Settings,
   Shield,
-  Users,
   Video,
 } from "lucide-react"
 
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-  import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
 
-/**
- * Role-based sidebar navigation component that adapts based on user role
- *
- * @param {Object} props - Component props
- * @param {string} props.role - User role (admin, team, or evaluator)
- * @param {string} props.userName - User's display name
- * @param {string} props.userEmail - User's email address
- * @returns {JSX.Element} Sidebar component
- */
-export function RoleBasedSidebar({ role, userName, userEmail }) {
+export function RoleBasedSidebar({ role }) {
   const pathname = usePathname()
 
   // Navigation items based on user role
@@ -62,6 +35,11 @@ export function RoleBasedSidebar({ role, userName, userEmail }) {
     if (role === "admin") {
       return [
         ...commonItems,
+        {
+          title: "Dashboard",
+          href: "/admin",
+          icon: Home,
+        },
         {
           title: "Evaluator Management",
           href: "/admin/evaluators",
