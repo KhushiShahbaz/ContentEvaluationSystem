@@ -56,40 +56,7 @@ export default function AdminDashboardPage() {
     fetchDashboardData()
   }, [])
 
-  // const handleApproveEvaluator = async (id) => {
-  //   try {
-  //     await adminAPI.approveEvaluator(id)
-  //     setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
-  //     setStats((prev) => ({
-  //       ...prev,
-  //       evaluators: {
-  //         ...prev.evaluators,
-  //         pending: prev.evaluators.pending - 1,
-  //       },
-  //     }))
-  //   } catch (err) {
-  //     console.error("Error approving evaluator:", err)
-  //     setError("Failed to approve evaluator. Please try again.")
-  //   }
-  // }
-
-  // const handleRejectEvaluator = async (id) => {
-  //   try {
-  //     await adminAPI.rejectEvaluator(id)
-  //     setPendingEvaluators((prev) => prev.filter((e) => e.id !== id))
-  //     setStats((prev) => ({
-  //       ...prev,
-  //       evaluators: {
-  //         ...prev.evaluators,
-  //         pending: prev.evaluators.pending - 1,
-  //       },
-  //     }))
-  //   } catch (err) {
-  //     console.error("Error rejecting evaluator:", err)
-  //     setError("Failed to reject evaluator. Please try again.")
-  //   }
-  // }
-
+ 
   return (
         <div className="space-y-6">
           <div>
@@ -147,82 +114,7 @@ export default function AdminDashboardPage() {
             </Card>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="recent">
-            <TabsList>
-              <TabsTrigger value="recent">Recent Submissions</TabsTrigger>
-              <TabsTrigger value="evaluations">Evaluation Progress</TabsTrigger>
-            </TabsList>
-
-            
-
-            <TabsContent value="recent" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Team Submissions</CardTitle>
-                  <CardDescription>Latest project submissions from teams</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex justify-center p-4">
-                      <p>Loading recent submissions...</p>
-                    </div>
-                  ) : recentSubmissions.length === 0 ? (
-                    <div className="flex justify-center p-4">
-                      <p>No recent submissions</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {recentSubmissions.map((submission) => (
-                        <div key={submission.id} className="flex items-center justify-between rounded-lg border p-4">
-                          <div>
-                            <p className="font-medium">{submission?.teamName}</p>
-                            <p className="text-sm text-muted-foreground">Project: {submission?.projectTitle}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button>View Details</Button>
-                            <Button variant="outline">Assign Evaluators</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="evaluations" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Evaluation Progress</CardTitle>
-                  <CardDescription>Track the progress of evaluations</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex justify-center p-4">
-                      <p>Loading evaluation progress...</p>
-                    </div>
-                  ) : Array.isArray(evaluationProgress) && evaluationProgress.length > 0 ? (
-                    <div className="space-y-4">
-                      {evaluationProgress.map((team) => (
-                        <div key={team.id} className="space-y-2">
-                          <div className="flex justify-between">
-                              <p className="font-medium">{team?.name}</p>
-                            <p className="text-sm text-muted-foreground">{team?.progress}% Complete</p>
-                          </div>
-                          <Progress value={team?.progress} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex justify-center p-4">
-                      <p>No evaluation data available</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+        
         </div>
   )
 }

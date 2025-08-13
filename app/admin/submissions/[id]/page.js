@@ -31,14 +31,14 @@ const{id}=useParams()
           submissionDate: new Date(submissionData.submittedAt).toLocaleDateString(),
           teamName: submissionData.teamId?.name || "N/A",
           teamLead: submissionData.submittedBy || "Unknown",
-          teamMembers: submissionData.teamMembers || [],
+          teamMembers: submissionData.teamId.members || [],
           videoLink: submissionData.videoLink,
           averageScore: submissionData.averageScore,
           assignedEvaluators: submissionData.evaluations?.map((e) => ({
-            name: e.evaluatorName,
-            expertise: e.expertise,
+            name: e.evaluatorId.name,
+            expertise: e.evaluatorId.expertise,
             status: e.status,
-            score: e.score,
+            score: e.scores,
           })) || [],
           learningOutcomes: submissionData.learningOutcomes
         }
@@ -46,7 +46,7 @@ const{id}=useParams()
         setSubmission(formattedSubmission)
         
   
-        getSubmission(formattedSubmissions)
+        // getSubmission(formattedSubmissions)
       } catch (err) {
         console.warn("No submission found.")
       }
@@ -71,10 +71,13 @@ const{id}=useParams()
   const completedEvaluations = submission?.assignedEvaluators?.filter((e) => e.status === "completed").length
   const totalEvaluators = submission?.assignedEvaluators?.length
   const progressPercentage = (completedEvaluations / totalEvaluators) * 100
+  
   const getYouTubeEmbedURL = (url) => {
-    const videoId = url?.split("v=")[1]?.split("&")[0]
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null
-  }
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
   
   return (
     <div className="space-y-6">
@@ -187,7 +190,7 @@ const{id}=useParams()
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {submission?.members?.map((member, index) => (
+                {submission?.teamMembers?.map((member, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={`https://avatar.vercel.sh/${member.name}`} />
@@ -226,12 +229,12 @@ const{id}=useParams()
                       </div>
                       {getEvaluatorStatusBadge(evaluator.status)}
                     </div>
-                    {evaluator.score && (
+                    {/* {evaluator.score && (
                       <div className="flex items-center gap-2 mt-2">
                         <Star className="h-4 w-4 text-yellow-500" />
                         <span className="text-sm font-medium">Score: {evaluator.score}</span>
                       </div>
-                    )}
+                    )} */}
                     {index < submission.assignedEvaluators.length - 1 && <Separator className="mt-4" />}
                   </div>
                 ))}

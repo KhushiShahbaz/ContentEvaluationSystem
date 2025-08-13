@@ -31,21 +31,20 @@ export default function SubmitProjectPage() {
   useEffect(() => {
     const fetchTeamAndSubmission = async () => {
       if (!user?.teamId) return
-  
       try {
         // Try to fetch existing submission
-        const res = await submissionAPI.getSubmission(user.teamId)
+        const res = await submissionAPI.getTeamSubmissions(user.teamId)
         const submissionData = res?.data?.data
-  
-        if (submissionData) {
-          setId(submissionData?._id)
-          setTeam(submissionData.teamId) // because you populated it
-          setProjectTitle(submissionData.projectTitle || "")
-          setDescription(submissionData.description || "")
-          setLearningOutcomes(submissionData.learningOutcomes || "")
-          setVideoLink(submissionData.videoLink || "")
+        const filteredSubmission= submissionData.find((data)=>data.status ==='pending')
+        if (filteredSubmission) {
+          setId(filteredSubmission?._id)
+          setTeam(filteredSubmission.teamId) // because you populated it
+          setProjectTitle(filteredSubmission.projectTitle || "")
+          setDescription(filteredSubmission.description || "")
+          setLearningOutcomes(filteredSubmission.learningOutcomes || "")
+          setVideoLink(filteredSubmission.videoLink || "")
           setTeamMembers(
-            (submissionData.teamId?.members || []).map(member => ({
+            (filteredSubmission.teamId?.members || []).map(member => ({
               label: member.name,
               value: member._id,
             }))

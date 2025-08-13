@@ -38,25 +38,18 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { submissionAPI } from "@/services/api"
+import { evaluatorAPI, submissionAPI } from "@/services/api"
 
 export default function TeamSubmissionsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSubmission, setSelectedSubmission] = useState(null)
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
   const [selectedEvaluators, setSelectedEvaluators] = useState([])
-
+  const [availableEvaluators, setAvailableEvaluators] = useState([])
+  const [loading, setLoading] = useState(false)
   // Sample team submissions data
-  const [teamSubmissions,setTeamSubmission] = useState([])
+  const [teamSubmissions, setTeamSubmission] = useState([])
 
-  // Available evaluators for assignment
-  const availableEvaluators = [
-    { id: 1, name: "Dr. James Wilson", expertise: "Computer Vision, Deep Learning" },
-    { id: 2, name: "Prof. Lisa Anderson", expertise: "Natural Language Processing" },
-    { id: 3, name: "Dr. Robert Kim", expertise: "Cybersecurity, Blockchain" },
-    { id: 4, name: "Dr. Emily Rodriguez", expertise: "Data Science, Analytics" },
-    { id: 5, name: "Prof. Michael Chen", expertise: "Software Engineering, Cloud Computing" },
-  ]
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -86,23 +79,39 @@ export default function TeamSubmissionsPage() {
     }
   }
 
-  const handleAssignEvaluators = () => {
-    if (selectedEvaluators.length === 0) {
-      alert("Please select at least one evaluator")
-      return
+  useEffect(() => {
+    if (isAssignDialogOpen) {
+      fetchEvaluators();
     }
+  }, [isAssignDialogOpen]);
 
-    console.log(`Assigning evaluators ${selectedEvaluators} to submission ${selectedSubmission.id}`)
-    setIsAssignDialogOpen(false)
-    setSelectedEvaluators([])
-    alert("Evaluators assigned successfully!")
-  }
+  const fetchEvaluators = async () => {
+    try {
+      const res = await evaluatorAPI.getActiveEvaluators();
+      setAvailableEvaluators(res?.data?.data?.evaluators);
+    } catch (err) {
+      console.error("Error fetching evaluators", err);
+    }
+  };
 
-  const handleEvaluatorToggle = (evaluatorId) => {
+  const handleEvaluatorToggle = (id) => {
     setSelectedEvaluators((prev) =>
-      prev.includes(evaluatorId) ? prev.filter((id) => id !== evaluatorId) : [...prev, evaluatorId],
-    )
-  }
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+    );
+  };
+
+  // ✅ Assign API Call
+  const handleAssignEvaluators = async () => {
+    try {
+      setLoading(true);
+      const res = await submissionAPI.assignEvaluator(selectedSubmission.id, selectedEvaluators)
+      setIsAssignDialogOpen(false);
+    } catch (err) {
+      console.error("Error assigning evaluators", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExportSubmissions = () => {
     console.log("Exporting submissions data...")
@@ -114,7 +123,6 @@ export default function TeamSubmissionsPage() {
       try {
         const res = await submissionAPI.getSubmissions()
         const submissionData = res?.data?.data || []
-  
         const formattedSubmissions = submissionData.map((submission) => {
           return {
             id: submission._id,
@@ -125,30 +133,29 @@ export default function TeamSubmissionsPage() {
             submissionDate: new Date(submission.submittedAt).toLocaleDateString(),
             teamName: submission.teamId?.name || "N/A",
             teamLead: submission.submittedBy || "Unknown",
-            teamMembers: submission.teamMembers || [],
+            teamMembers: submission.teamId.members || [],
             videoLink: submission.videoLink,
             averageScore: submission.averageScore,
-            assignedEvaluators: submission.evaluations?.map((e) => e.evaluatorName) || [],
+            assignedEvaluators: submission.evaluations?.map((e) => e.evaluatorId.name) || [],
           }
         })
-  
+
         setTeamSubmission(formattedSubmissions)
       } catch (err) {
         console.warn("No submission found.")
       }
     }
-  
+
     fetchTeamAndSubmission()
   }, [])
-  
+
 
   const filteredSubmissions = teamSubmissions.filter(
     (submission) =>
       submission.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       submission.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.teamLead.toLowerCase().includes(searchTerm.toLowerCase()),
+      submission.teamId.toLowerCase().includes(searchTerm.toLowerCase()),
   )
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -225,15 +232,15 @@ export default function TeamSubmissionsPage() {
 
                   {/* Team Members */}
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Team Members ({submission.teamMembers.length})</h4>
+                    <h4 className="text-sm font-medium mb-2">Team Members ({submission?.teamMembers.length})</h4>
                     <div className="flex flex-wrap gap-2">
-                      {submission.teamMembers.map((member, index) => (
+                      {submission?.teamMembers?.map((member, index) => (
                         <div key={index} className="flex items-center gap-1">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src={`https://avatar.vercel.sh/${member}`} />
-                            <AvatarFallback className="text-xs">{member.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={`https://avatar.vercel.sh/${member.name}`} />
+                            <AvatarFallback className="text-xs">{member?.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <span className="text-xs">{member}</span>
+                          <span className="text-xs">{member.name}</span>
                           {index === 0 && (
                             <Badge variant="outline" className="text-xs ml-1">
                               Lead
@@ -244,7 +251,7 @@ export default function TeamSubmissionsPage() {
                     </div>
                   </div>
 
-                 
+
 
                   {/* Assigned Evaluators */}
                   {submission.assignedEvaluators.length > 0 && (
@@ -265,7 +272,7 @@ export default function TeamSubmissionsPage() {
                 <div className="space-y-4">
                   {submission.averageScore && (
                     <div className="text-center p-4 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold">{submission.averageScore}</div>
+                      <div className="text-2xl font-bold">{submission.averageScore<0 && submission.averageScore}</div>
                       <div className="text-sm text-muted-foreground">Average Score</div>
                     </div>
                   )}
@@ -285,7 +292,7 @@ export default function TeamSubmissionsPage() {
                       </Link>
                     </Button> */}
 
-                    {submission.status === "pending-assignment" && (
+                    {submission.status === "pending" && (
                       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
                         <DialogTrigger asChild>
                           <Button
@@ -309,31 +316,24 @@ export default function TeamSubmissionsPage() {
                             <div>
                               <Label className="text-sm font-medium">Available Evaluators</Label>
                               <div className="mt-2 space-y-2">
-                                {availableEvaluators.map((evaluator) => (
-                                  <div key={evaluator.id} className="flex items-center space-x-2">
+                                {availableEvaluators?.map((evaluator,idx) => (
+                                  <div key={idx} className="flex items-center space-x-2">
                                     <Checkbox
-                                      id={`evaluator-${evaluator.id}`}
-                                      checked={selectedEvaluators.includes(evaluator.id)}
-                                      onCheckedChange={() => handleEvaluatorToggle(evaluator.id)}
+                                      id={`evaluator-${evaluator._id}`}
+                                      checked={selectedEvaluators.includes(evaluator._id)}
+                                      onCheckedChange={() => handleEvaluatorToggle(evaluator._id)}
                                     />
-                                    <Label htmlFor={`evaluator-${evaluator.id}`} className="flex-1">
+                                    <Label htmlFor={`evaluator-${evaluator._id}`} className="flex-1">
                                       <div>
                                         <div className="font-medium">{evaluator.name}</div>
-                                        <div className="text-xs text-muted-foreground">{evaluator.expertise}</div>
+                                        <div className="text-xs text-muted-foreground">{evaluator.experience}</div>
                                       </div>
                                     </Label>
                                   </div>
                                 ))}
                               </div>
                             </div>
-                            <div>
-                              <Label htmlFor="assignment-notes">Assignment Notes (Optional)</Label>
-                              <Textarea
-                                id="assignment-notes"
-                                placeholder="Add any specific instructions for the evaluators..."
-                                className="mt-1"
-                              />
-                            </div>
+
                           </div>
                           <DialogFooter>
                             <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>

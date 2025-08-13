@@ -9,12 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-/**
- * Evaluation Summary Page for Administrators
- * Provides comprehensive overview of all evaluations and their progress
- *
- * @returns {JSX.Element} Evaluation Summary Page component
- */
 export default function EvaluationSummaryPage() {
   // Summary statistics
   const stats = {
