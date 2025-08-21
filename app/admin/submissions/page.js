@@ -181,23 +181,7 @@ export default function TeamSubmissionsPage() {
             className="pl-8"
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>All Submissions</DropdownMenuItem>
-            <DropdownMenuItem>Pending Assignment</DropdownMenuItem>
-            <DropdownMenuItem>Assigned</DropdownMenuItem>
-            <DropdownMenuItem>Under Review</DropdownMenuItem>
-            <DropdownMenuItem>Completed</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+       
       </div>
 
       {/* Submissions Grid */}

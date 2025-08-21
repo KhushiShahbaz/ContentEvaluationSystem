@@ -159,44 +159,7 @@ const[inviteData, setInviteData]=useState({
           <h1 className="text-3xl font-bold tracking-tight">Evaluators Management</h1>
           <p className="text-muted-foreground">Manage evaluator accounts and assignments</p>
         </div>
-        {/* <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invite Evaluator
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite New Evaluator</DialogTitle>
-              <DialogDescription>Send an invitation to a new evaluator to join the platform</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddEvaluator} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="evaluator-name" >Full Name</Label>
-                <Input id="evaluator-name" value={inviteData.name} placeholder="Enter evaluator's full name" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="evaluator-email">Email Address</Label>
-                <Input id="evaluator-email" type="email" value={inviteData.email} placeholder="Enter evaluator's email" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invitation-message" value={inviteData.message}>Invitation Message</Label>
-                <Textarea
-                  id="invitation-message"
-                  placeholder="Add a personal message to the invitation..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Send Invitation</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog> */}
+      
       </div>
 
       {/* Search and Filter */}
@@ -210,22 +173,7 @@ const[inviteData, setInviteData]=useState({
             className="pl-8"
           />
         </div>
-        {/* <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>All Evaluators</DropdownMenuItem>
-            <DropdownMenuItem>Active</DropdownMenuItem>
-            <DropdownMenuItem>Pending Approval</DropdownMenuItem>
-            <DropdownMenuItem>Inactive</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu> */}
+      
       </div>
 
       <Tabs defaultValue="pending">
@@ -293,8 +241,9 @@ const[inviteData, setInviteData]=useState({
         <TabsContent value="active" className="space-y-4">
           <div className="grid gap-4">
             {activeEvaluators?.map((evaluator) => (
+              <div className="flex items-center justify-start">
               <Card key={evaluator._id}>
-                <CardContent className="p-6">
+                <CardContent className="p-6 py-10">
                   <div className="flex items-start justify-between">
                     <div className="space-y-3">
                       <div>
@@ -325,26 +274,13 @@ const[inviteData, setInviteData]=useState({
                           <strong>Experience:</strong> {evaluator.experience}
                         </p>
                       </div>
-                      <div className="flex gap-6 text-sm">
-                        <div>
-                          <span className="font-medium">Assigned Teams:</span> {evaluator.assignedTeams}
-                        </div>
-                        <div>
-                          <span className="font-medium">Completed Evaluations:</span> {evaluator.completedEvaluations}
-                        </div>
-                      </div>
+                     
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        Assign Teams
-                      </Button>
-                    </div>
+                    
                   </div>
                 </CardContent>
               </Card>
+              </div>
             ))}
           </div>
         </TabsContent>
