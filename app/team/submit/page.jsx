@@ -26,27 +26,38 @@ export default function SubmitProjectPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const [id, setId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const tabOrder = ["details", "team", "video"]
 
   useEffect(() => {
     const fetchTeamAndSubmission = async () => {
-      if (!user?.teamId) return
+      if (!user?.teamId) {
+        setLoading(false)
+        setError('No team assigned')
+        return
+      }
+      
       try {
+        setLoading(true)
+        setError(null)
+        
         // Try to fetch existing submission
         const res = await submissionAPI.getTeamSubmissions(user.teamId)
-        const submissionData = res?.data?.data
-        const filteredSubmission= submissionData.find((data)=>data.status ==='pending')
+        const submissionData = res?.data?.data || []
+        const filteredSubmission = submissionData.find((data) => data?.status === 'pending')
+        
         if (filteredSubmission) {
-          setId(filteredSubmission?._id)
-          setTeam(filteredSubmission.teamId) // because you populated it
-          setProjectTitle(filteredSubmission.projectTitle || "")
-          setDescription(filteredSubmission.description || "")
-          setLearningOutcomes(filteredSubmission.learningOutcomes || "")
-          setVideoLink(filteredSubmission.videoLink || "")
+          setId(filteredSubmission?._id || '')
+          setTeam(filteredSubmission.teamId || null)
+          setProjectTitle(filteredSubmission?.projectTitle || "")
+          setDescription(filteredSubmission?.description || "")
+          setLearningOutcomes(filteredSubmission?.learningOutcomes || "")
+          setVideoLink(filteredSubmission?.videoLink || "")
           setTeamMembers(
             (filteredSubmission.teamId?.members || []).map(member => ({
-              label: member.name,
-              value: member._id,
+              label: member?.name || 'Unknown Member',
+              value: member?._id || Math.random(),
             }))
           )
           return
@@ -58,18 +69,21 @@ export default function SubmitProjectPage() {
       // If no submission, fallback to raw team data
       try {
         const res = await teamAPI.getTeam(user.teamId)
-        const teamData = res.data.data
+        const teamData = res?.data?.data
         setTeam(teamData)
-        setProjectTitle(teamData.projectTitle || "")
-        setDescription(teamData.projectDescription || "")
+        setProjectTitle(teamData?.projectTitle || "")
+        setDescription(teamData?.projectDescription || "")
         setTeamMembers(
-          (teamData.members || []).map(member => ({
-            label: member.name,
-            value: member._id,
+          (teamData?.members || []).map(member => ({
+            label: member?.name || 'Unknown Member',
+            value: member?._id || Math.random(),
           }))
         )
       } catch (err) {
         console.error("Error fetching team:", err)
+        setError('Failed to load team information')
+      } finally {
+        setLoading(false)
       }
     }
   
@@ -153,6 +167,52 @@ console.log(id,"id")
     }
   }
 
+  if (loading) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading project submission form...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Form</h1>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/team">Back to Dashboard</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!team) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">No Team Found</h1>
+          <p className="text-muted-foreground mb-4">You are not part of any team yet.</p>
+          <Button asChild>
+            <Link href="/team">Back to Dashboard</Link>
+            </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -215,7 +275,7 @@ console.log(id,"id")
                   {teamMembers.length === 0 && (
                     <span className="text-muted-foreground text-sm">Select team members</span>
                   )}
-                  {teamMembers.map((member) => (
+                  {teamMembers && teamMembers.map((member) => (
                     <span
                       key={member.value}
                       className="flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
@@ -232,9 +292,9 @@ console.log(id,"id")
                   <ChevronDown size={16} className="ml-auto text-muted-foreground" />
                 </div>
 
-                {dropdownOpen && (
+                {dropdownOpen && team?.members && (
                   <ul className="absolute z-10 mt-1 w-full bg-white border rounded-md shadow-md max-h-60 overflow-y-auto text-sm">
-                    {team?.members?.map((option) => {
+                    {team.members.map((option) => {
                       const o = { label: option.name, value: option._id }
                       return (
                         <li
@@ -266,8 +326,11 @@ console.log(id,"id")
               <Input
                 value={videoLink}
                 onChange={(e) => setVideoLink(e.target.value)}
-                placeholder="https://youtube.com/..."
+                placeholder="https://youtube.com/... or any video platform"
               />
+              <p className="text-xs text-muted-foreground">
+                Supported platforms: YouTube, Vimeo, Dailymotion, Google Drive, Dropbox, OneDrive, Mega, MediaFire, WeTransfer
+              </p>
 
             </CardContent>
             <CardFooter>

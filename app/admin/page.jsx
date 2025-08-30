@@ -21,7 +21,11 @@ export default function AdminDashboardPage() {
   })
   const [pendingEvaluators, setPendingEvaluators] = useState([])
   const [recentSubmissions, setRecentSubmissions] = useState([])
-  const [evaluationProgress, setEvaluationProgress] = useState([])
+  const [evaluationProgress, setEvaluationProgress] = useState({
+    totalSubmissions: 0,
+    evaluatedSubmissions: 0,
+    progressPercent: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -31,18 +35,31 @@ export default function AdminDashboardPage() {
         setLoading(true)
 
         const statsResponse = await adminAPI.getDashboardStats()
-        const statsData=statsResponse?.data?.data
-        setStats( {teams: { count: statsData.totalTeams, },
-          evaluators: { count: statsData.totalEvaluators
-            , pending: statsData.pendingEvaluators },
-          submissions: { count: statsData.totalSubmissions, percentage: "0% of total teams" },
-          evaluationsComplete: { percentage: 0 },})
+        const statsData = statsResponse?.data?.data || {}
+        setStats({
+          teams: { 
+            count: statsData?.totalTeams || 0, 
+            change: "0 from last week" 
+          },
+          evaluators: { 
+            count: statsData?.totalEvaluators || 0, 
+            pending: statsData?.pendingEvaluators || 0 
+          },
+          submissions: { 
+            count: statsData?.totalSubmissions || 0, 
+            percentage: "0% of total teams" 
+          },
+          evaluationsComplete: { 
+            percentage: 0 
+          }
+        })
 
         const evaluatorsResponse = await adminAPI.getPendingEvaluators()
-        setPendingEvaluators(evaluatorsResponse?.data?.data )
+        setPendingEvaluators(evaluatorsResponse?.data?.data || [])
 
         const progressResponse = await adminAPI.getEvaluationProgress()
-        setEvaluationProgress(progressResponse?.data?.data )
+        const progressData = progressResponse?.data?.data || { totalSubmissions: 0, evaluatedSubmissions: 0, progressPercent: 0 }
+        setEvaluationProgress(progressData)
 
         console.log(statsResponse, evaluatorsResponse, progressResponse)
         setLoading(false)
@@ -64,14 +81,21 @@ export default function AdminDashboardPage() {
             <p className="text-muted-foreground">Manage evaluators, teams, and monitor the evaluation process</p>
           </div>
 
-          {error && (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-lg text-muted-foreground">Loading dashboard...</p>
+              </div>
+            </div>
+          ) : error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          )}
-
-          {/* Statistics Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          ) : (
+            <>
+              {/* Statistics Cards */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
@@ -99,7 +123,11 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.submissions?.count}</div>
-                <p className="text-xs text-muted-foreground">{stats?.submissions?.percentage}</p>
+                <p className="text-xs text-muted-foreground">
+                  {evaluationProgress?.totalSubmissions > 0
+                    ? `${Math.round((stats?.submissions?.count / evaluationProgress.totalSubmissions) * 100)}% of total submissions`
+                    : "0% of total submissions"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -108,13 +136,13 @@ export default function AdminDashboardPage() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.evaluationsComplete?.percentage}%</div>
-                <Progress value={stats?.evaluationsComplete?.percentage} className="mt-2" />
+                <div className="text-2xl font-bold">{evaluationProgress?.progressPercent}%</div>
+                <Progress value={evaluationProgress?.progressPercent} className="mt-2" />
               </CardContent>
             </Card>
           </div>
-
-        
+            </>
+          )}
         </div>
-  )
-}
+    )
+  }

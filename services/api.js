@@ -87,7 +87,9 @@ export const evaluationAPI = {
   deleteEvaluation: (id) => api.delete(`/evaluations/${id}`),
   getSubmissionEvaluations: (submissionId) => api.get(`/evaluations/submission/${submissionId}`),
   getEvaluatorAssignments: () => api.get("/evaluations/evaluator/assignments"),
+  getTeamEvaluations: (teamId) => api.get(`/evaluations/team/${teamId}`),
   publishEvaluation: (id) => api.put(`/evaluations/${id}/publish`),
+  exportReport: () => api.get(`/evaluations/export`, { responseType: "blob" }),
 }
 
 // Admin API
@@ -97,16 +99,35 @@ export const adminAPI = {
   approveEvaluator: (id) => api.put(`/admin/evaluators/${id}/approve`),
   rejectEvaluator: (id) => api.put(`/admin/evaluators/${id}/reject`),
   getLeaderboard: () => api.get("/admin/leaderboard"),
-  publishLeaderboard: () => api.put("/admin/leaderboard/publish"),
+  publishLeaderboard: (payload = { isPublished: true }) => api.put("/admin/leaderboard/publish", payload),
   getEvaluationProgress: () => api.get("/admin/evaluation-progress"),
 }
 
 export const evaluatorAPI={
   getEvaluatorDashboardStats:(evaluatorId)=>api.get(`/evaluators/${evaluatorId}`),
-inviteEvaluator:()=> api.post("/evaluators/"),
-getAllEvaluators: ()=> api.get("/evaluators/"),
-getEvaluatorById: (id)=>api.get(`/evaluators/${id}`),
-getActiveEvaluators: ()=>api.get("/evaluators/active"),
+  inviteEvaluator:(payload)=> api.post("/evaluators", payload),
+  getAllEvaluators: (params)=> api.get("/evaluators", { params }),
+  getEvaluatorById: (id)=>api.get(`/evaluators/${id}`),
+  getActiveEvaluators: (params)=>api.get("/evaluators/active", { params }),
+}
+
+
+
+// Chat API
+export const chatAPI = {
+  createSupportChat: (data) => api.post("/chat/support", data),
+  getUserChats: () => api.get("/chat"),
+  getChat: (id) => api.get(`/chat/${id}`),
+  sendMessage: (id, data) => api.post(`/chat/${id}/message`, data),
+  getAllSupportChats: () => api.get("/chat/support/all"),
+  getSupportStats: () => api.get("/chat/support/stats"),
+  assignChat: (id, data) => api.put(`/chat/${id}/assign`, data),
+  updateChatStatus: (id, data) => api.put(`/chat/${id}/status`, data),
+}
+
+// Public API
+export const publicAPI = {
+  getLeaderboard: () => api.get("/leaderboard"),
 }
 
 export default api

@@ -28,18 +28,18 @@ export function RoleBasedSidebar({ role }) {
   // Navigation items based on user role
   const getNavItems = (role) => {
     const commonItems = [
-     
+      {
+        title: "Dashboard",
+        href: `/${role}`,
+        icon: Home,
+      },
       
     ]
 
     if (role === "admin") {
       return [
         ...commonItems,
-        {
-          title: "Dashboard",
-          href: "/admin",
-          icon: Home,
-        },
+       
         {
           title: "Evaluator Management",
           href: "/admin/evaluators",
@@ -94,6 +94,7 @@ export function RoleBasedSidebar({ role }) {
       // Evaluator
       return [
         ...commonItems,
+        
         {
           title: "Assigned Videos",
           href: "/evaluator/videos",

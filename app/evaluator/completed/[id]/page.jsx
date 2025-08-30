@@ -1,5 +1,175 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import PropTypes from "prop-types"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { evaluationAPI } from "@/services/api"
+
+export default function CompletedEvaluationDetails({ params }) {
+  const [evaluation, setEvaluation] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setLoading(true)
+        const res = await evaluationAPI.getEvaluation(params.id)
+        setEvaluation(res?.data?.data || null)
+      } catch (err) {
+        setError("Failed to load evaluation details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDetails()
+  }, [params.id])
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/evaluator/completed">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold">Evaluation Details</h1>
+      </div>
+
+      {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {evaluation && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team & Project</CardTitle>
+              <CardDescription>{evaluation?.submissionId?.teamId?.name || "Team"}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">{evaluation?.submissionId?.projectTitle || "-"}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Scores</CardTitle>
+              <CardDescription>Total: {evaluation?.totalScore ?? 0} | Avg: {evaluation?.averageScore ?? 0}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs bg-muted p-3 rounded overflow-auto">{JSON.stringify(evaluation?.scores, null, 2)}</pre>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Feedback</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{evaluation?.feedback || "No feedback provided."}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  )
+}
+
+CompletedEvaluationDetails.propTypes = {
+  params: PropTypes.shape({ id: PropTypes.string.isRequired }).isRequired,
+}
+
+"use client"
+
+import { useEffect, useState } from "react"
+import PropTypes from "prop-types"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { evaluationAPI } from "@/services/api"
+
+export default function CompletedEvaluationDetails({ params }) {
+  const [evaluation, setEvaluation] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setLoading(true)
+        const res = await evaluationAPI.getEvaluation(params.id)
+        setEvaluation(res?.data?.data || null)
+      } catch (err) {
+        setError("Failed to load evaluation details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDetails()
+  }, [params.id])
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/evaluator/completed">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold">Evaluation Details</h1>
+      </div>
+
+      {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {evaluation && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Team & Project</CardTitle>
+              <CardDescription>{evaluation?.submissionId?.teamId?.name || "Team"}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">{evaluation?.submissionId?.projectTitle || "-"}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Scores</CardTitle>
+              <CardDescription>Total: {evaluation?.totalScore ?? 0} | Avg: {evaluation?.averageScore ?? 0}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-xs bg-muted p-3 rounded overflow-auto">{JSON.stringify(evaluation?.scores, null, 2)}</pre>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Feedback</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{evaluation?.feedback || "No feedback provided."}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  )
+}
+
+CompletedEvaluationDetails.propTypes = {
+  params: PropTypes.shape({ id: PropTypes.string.isRequired }).isRequired,
+}
+
+"use client"
+
 import { useEffect, useMemo, useState } from "react"
 import PropTypes from "prop-types"
 import { ArrowLeft } from "lucide-react"
@@ -14,19 +184,19 @@ import { evaluationAPI } from "@/services/api"
 
 /**
  * Evaluation criteria for project assessment
- * Each criterion has an ID, name, description, and weightage as per project requirements
+ * Each criterion has an ID, name, and description
  */
 const criteria = [
-  { id: "relevance", name: "Relevance to Learning Objectives/Outcomes", description: "Alignment with the competition theme and learning outcomes", weightage: 5 },
-  { id: "innovation", name: "Innovation & Creativity", description: "Originality and creativity of the solution", weightage: 15 },
-  { id: "clarity", name: "Clarity and Accessibility", description: "Clear explanation of concepts and implementation", weightage: 10 },
-  { id: "depth", name: "Depth", description: "Thoroughness of research and implementation", weightage: 5 },
-  { id: "engagement", name: "Interactivity and Engagement", description: "Ability to engage and maintain interest", weightage: 25 },
-  { id: "techUse", name: "Use of Technology", description: "Effective use of technology", weightage: 5 },
-  { id: "scalability", name: "Scalability and Adaptability", description: "Potential for growth and expansion", weightage: 10 },
-  { id: "ethics", name: "Alignment with Ethical Standards", description: "Consideration of ethical implications", weightage: 5 },
-  { id: "practicality", name: "Practical Application", description: "Feasibility and practical application", weightage: 10 },
-  { id: "videoQuality", name: "Video Quality", description: "Production quality of the video", weightage: 10 },
+  { id: "relevance", name: "Relevance", description: "Alignment with the competition theme" },
+  { id: "innovation", name: "Innovation", description: "Originality and creativity of the solution" },
+  { id: "clarity", name: "Clarity", description: "Clear explanation of concepts and implementation" },
+  { id: "depth", name: "Depth", description: "Thoroughness of research and implementation" },
+  { id: "engagement", name: "Engagement", description: "Ability to engage and maintain interest" },
+  { id: "techUse", name: "Tech Use", description: "Effective use of technology" },
+  { id: "scalability", name: "Scalability", description: "Potential for growth and expansion" },
+  { id: "ethics", name: "Ethics", description: "Consideration of ethical implications" },
+  { id: "practicality", name: "Practicality", description: "Feasibility and practical application" },
+  { id: "videoQuality", name: "Video Quality", description: "Production quality of the video" },
 ]
 
 /**
@@ -85,15 +255,9 @@ export default function EvaluationPage({ params }) {
     }))
   }
 
-  // Calculate weighted total score based on criteria weightages
-  const weightedTotal = criteria.reduce((sum, criterion) => {
-    const score = scores[criterion.id] || 0
-    const weightedScore = (score / 10) * criterion.weightage
-    return sum + weightedScore
-  }, 0)
-  
-  const totalScore = Math.round(weightedTotal * 100) / 100
-  const averageScore = totalScore // Since total is already weighted percentage
+  // Calculate total and average scores
+  const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0)
+  const averageScore = totalScore / criteria.length
 
   /**
    * Handle form submission
@@ -179,16 +343,12 @@ export default function EvaluationPage({ params }) {
           <Card>
             <CardHeader>
               <CardTitle>Evaluation Score</CardTitle>
-              <CardDescription>Weighted total based on criteria importance</CardDescription>
+              <CardDescription>Current average: {averageScore.toFixed(1)}/10</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center">
                 <div className="text-5xl font-bold">{totalScore}</div>
                 <p className="text-sm text-muted-foreground">out of 100 points</p>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <p>Raw Average: {(Object.values(scores).reduce((sum, score) => sum + score, 0) / criteria.length).toFixed(1)}/10</p>
-                  <p>Weighted Total: {totalScore}%</p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -201,17 +361,9 @@ export default function EvaluationPage({ params }) {
             <CardContent className="space-y-6">
               {criteria.map((criterion) => (
                 <div key={criterion.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <Label htmlFor={criterion.id}>{criterion.name}</Label>
-                      <p className="text-xs text-muted-foreground">{criterion.description}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-medium">{scores[criterion.id]}/10</span>
-                      <div className="text-xs text-muted-foreground">
-                        Weight: {criterion.weightage}%
-                      </div>
-                    </div>
+                  <div className="flex justify-between">
+                    <Label htmlFor={criterion.id}>{criterion.name}</Label>
+                    <span className="text-sm font-medium">{scores[criterion.id]}/10</span>
                   </div>
                   <Slider
                     id={criterion.id}
@@ -221,10 +373,7 @@ export default function EvaluationPage({ params }) {
                     value={[scores[criterion.id]]}
                     onValueChange={(value) => handleScoreChange(criterion.id, value)}
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Raw Score: {scores[criterion.id]}/10</span>
-                    <span>Weighted: {Math.round((scores[criterion.id] / 10) * criterion.weightage * 100) / 100}%</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground">{criterion.description}</p>
                 </div>
               ))}
             </CardContent>

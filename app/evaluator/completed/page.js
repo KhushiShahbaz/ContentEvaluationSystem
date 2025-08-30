@@ -1,14 +1,30 @@
+"use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { evaluationAPI } from '@/services/api'
 
 function page() {
-  
-  // Completed evaluations data
-  const completedEvaluations = [
-    { id: 6, name: "Team 6", score: 76 },
-    { id: 7, name: "Team 7", score: 77 },
-    { id: 8, name: "Team 8", score: 78 },
-  ]
+  const [completedEvaluations, setCompletedEvaluations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setLoading(true)
+        const res = await evaluationAPI.getEvaluatorAssignments()
+        const completed = res?.data?.data?.completed || []
+        setCompletedEvaluations(completed)
+      } catch (err) {
+        console.error('Failed to load completed evaluations', err)
+        setError('Failed to load completed evaluations')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAssignments()
+  }, [])
 
   return (
     <div>
@@ -19,16 +35,18 @@ function page() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {completedEvaluations.map((evaluation) => (
-                  <div key={evaluation.id} className="flex items-center justify-between rounded-lg border p-4">
+                {loading && <p className="text-sm text-muted-foreground">Loading...</p>}
+                {error && <p className="text-sm text-red-500">{error}</p>}
+                {!loading && !error && completedEvaluations.map((evaluation) => (
+                  <div key={evaluation._id} className="flex items-center justify-between rounded-lg border p-4">
                     <div>
-                      <p className="font-medium">{evaluation.name}</p>
-                      <p className="text-sm text-muted-foreground">Score: {evaluation.score}</p>
+                      <p className="font-medium">{evaluation.submissionId?.teamId?.name || 'Team'}</p>
+                      <p className="text-sm text-muted-foreground">Score: {evaluation.totalScore ?? '-'}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button className="rounded-md bg-secondary px-3 py-1 text-sm text-secondary-foreground">
+                      <Link href={`/evaluator/completed/${evaluation._id}`} className="rounded-md bg-secondary px-3 py-1 text-sm text-secondary-foreground inline-flex items-center">
                         View Details
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 ))}

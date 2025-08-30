@@ -46,36 +46,53 @@ export default function TeamSubmissionsPage() {
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
   const [selectedEvaluators, setSelectedEvaluators] = useState([])
   const [availableEvaluators, setAvailableEvaluators] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   // Sample team submissions data
   const [teamSubmissions, setTeamSubmission] = useState([])
 
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "pending-assignment":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending Assignment</Badge>
+      case "draft":
+        return <Badge className="bg-gray-100 text-gray-800">Draft</Badge>
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+      case "submitted":
+        return <Badge className="bg-blue-100 text-blue-800">Submitted</Badge>
+      case "published":
+        return <Badge className="bg-green-100 text-green-800">Published</Badge>
       case "assigned":
-        return <Badge className="bg-blue-100 text-blue-800">Assigned</Badge>
+        return <Badge className="bg-purple-100 text-purple-800">Assigned</Badge>
       case "under-review":
-        return <Badge className="bg-purple-100 text-purple-800">Under Review</Badge>
+        return <Badge className="bg-orange-100 text-orange-800">Under Review</Badge>
       case "completed":
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status || 'Unknown'}</Badge>
     }
   }
 
   const getEvaluationStatusBadge = (status) => {
     switch (status) {
-      case "not-started":
-        return <Badge variant="outline">Not Started</Badge>
-      case "in-progress":
-        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>
+      case "draft":
+        return <Badge variant="outline" className="bg-gray-100 text-gray-700">Draft</Badge>
+      case "pending":
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-700">Pending</Badge>
+      case "submitted":
+        return <Badge className="bg-blue-100 text-blue-800">Submitted</Badge>
+      case "published":
+        return <Badge className="bg-green-100 text-green-800">Published</Badge>
+                    case "not-started":
+         return <Badge variant="outline" className="bg-gray-100 text-gray-700">Not Started</Badge>
+       case "assigned":
+         return <Badge variant="outline" className="bg-purple-100 text-purple-700">Assigned</Badge>
+       case "in-progress":
+         return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>
       case "completed":
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary">{status || 'Unknown'}</Badge>
     }
   }
 
@@ -88,7 +105,11 @@ export default function TeamSubmissionsPage() {
   const fetchEvaluators = async () => {
     try {
       const res = await evaluatorAPI.getActiveEvaluators();
-      setAvailableEvaluators(res?.data?.data?.evaluators);
+      const evals = res?.data?.data?.evaluators || []
+      // Exclude evaluators already assigned to the selected submission
+      const assignedIds = selectedSubmission?.assignedEvaluatorIds || []
+      const filtered = evals.filter((ev) => !assignedIds.includes(ev._id))
+      setAvailableEvaluators(filtered);
     } catch (err) {
       console.error("Error fetching evaluators", err);
     }
@@ -100,62 +121,102 @@ export default function TeamSubmissionsPage() {
     );
   };
 
-  // ✅ Assign API Call
+  // Function to determine evaluation status based on evaluations data
+  const getEvaluationStatus = (evaluations) => {
+    if (!evaluations || evaluations.length === 0) {
+      return "not-started"
+    }
+    
+    // Check if any evaluation is completed
+    const hasCompleted = evaluations.some(evaluation => evaluation?.status === "submitted" || evaluation?.status === "published")
+    if (hasCompleted) {
+      return "completed"
+    }
+    
+    // Check if any evaluation is in progress
+    const hasInProgress = evaluations.some(evaluation => evaluation?.status === "pending" || evaluation?.status === "draft")
+    if (hasInProgress) {
+      return "in-progress"
+    }
+    
+    // Check if evaluators are assigned but no evaluations started
+    const hasAssigned = evaluations.some(evaluation => evaluation?.evaluatorId)
+    if (hasAssigned) {
+      return "assigned"
+    }
+    
+    return "not-started"
+  }
+
+  // ✅ Assign API Call (call endpoint once per evaluator)
   const handleAssignEvaluators = async () => {
     try {
-      setLoading(true);
-      const res = await submissionAPI.assignEvaluator(selectedSubmission.id, selectedEvaluators)
-      setIsAssignDialogOpen(false);
+      setLoading(true)
+      const submissionId = selectedSubmission?.id
+      if (!submissionId || selectedEvaluators.length === 0) return
+      await Promise.all(
+        selectedEvaluators.map((evaluatorId) =>
+          submissionAPI.assignEvaluator(submissionId, evaluatorId)
+        )
+      )
+      setIsAssignDialogOpen(false)
+      // Refresh submissions to reflect assignments
+      await fetchSubmissions()
     } catch (err) {
-      console.error("Error assigning evaluators", err);
+      console.error("Error assigning evaluators", err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleExportSubmissions = () => {
-    console.log("Exporting submissions data...")
-    alert("Submissions data exported successfully!")
+
+
+  const fetchSubmissions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await submissionAPI.getSubmissions()
+      const submissionData = res?.data?.data || []
+      const formattedSubmissions = submissionData.map((submission) => {
+        return {
+          id: submission?._id || Math.random(),
+          projectTitle: submission?.projectTitle || 'Untitled Project',
+          description: submission?.description || 'No description',
+          status: submission?.status || "pending",
+                     evaluationStatus: getEvaluationStatus(submission?.evaluations), // Calculate proper evaluation status
+          submissionDate: submission?.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Unknown date',
+          teamName: submission?.teamId?.name || "N/A",
+          teamLead: submission?.submittedBy || "Unknown",
+          teamMembers: submission?.teamId?.members || [],
+          videoLink: submission?.videoLink || '',
+          averageScore: submission?.totalScore || 0,
+          assignedEvaluators: submission?.evaluations?.map((e) => e?.evaluatorId?.name).filter(Boolean) || [],
+          assignedEvaluatorIds: submission?.evaluations?.map((e) => e?.evaluatorId?._id).filter(Boolean) || [],
+        }
+      })
+
+      setTeamSubmission(formattedSubmissions)
+    } catch (err) {
+      console.error("Error fetching submissions:", err)
+      setError('Failed to load submissions')
+      setTeamSubmission([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    const fetchTeamAndSubmission = async () => {
-      try {
-        const res = await submissionAPI.getSubmissions()
-        const submissionData = res?.data?.data || []
-        const formattedSubmissions = submissionData.map((submission) => {
-          return {
-            id: submission._id,
-            projectTitle: submission.projectTitle,
-            description: submission.description,
-            status: submission.status || "pending",
-            evaluationStatus: "not-started", // you can change this logic if backend provides it
-            submissionDate: new Date(submission.submittedAt).toLocaleDateString(),
-            teamName: submission.teamId?.name || "N/A",
-            teamLead: submission.submittedBy || "Unknown",
-            teamMembers: submission.teamId.members || [],
-            videoLink: submission.videoLink,
-            averageScore: submission.averageScore,
-            assignedEvaluators: submission.evaluations?.map((e) => e.evaluatorId.name) || [],
-          }
-        })
-
-        setTeamSubmission(formattedSubmissions)
-      } catch (err) {
-        console.warn("No submission found.")
-      }
-    }
-
-    fetchTeamAndSubmission()
+    fetchSubmissions()
   }, [])
 
 
-  const filteredSubmissions = teamSubmissions.filter(
-    (submission) =>
-      submission.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.teamId.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const filteredSubmissions = teamSubmissions.filter((submission) => {
+    const term = searchTerm.toLowerCase()
+    return (
+      (submission.teamName || "").toLowerCase().includes(term) ||
+      (submission.projectTitle || "").toLowerCase().includes(term)
+    )
+  })
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -163,10 +224,7 @@ export default function TeamSubmissionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Team Submissions</h1>
           <p className="text-muted-foreground">Manage team project submissions and evaluator assignments</p>
         </div>
-        <Button onClick={handleExportSubmissions}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Data
-        </Button>
+        
       </div>
 
 
@@ -185,8 +243,33 @@ export default function TeamSubmissionsPage() {
       </div>
 
       {/* Submissions Grid */}
-      <div className="grid gap-6">
-        {filteredSubmissions.map((submission) => (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg text-muted-foreground">Loading submissions...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-medium mb-2">Error Loading Submissions</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={fetchSubmissions} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      ) : filteredSubmissions.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📋</div>
+          <h3 className="text-xl font-medium mb-2">No Submissions Found</h3>
+          <p className="text-muted-foreground mb-4">
+            {searchTerm ? 'No submissions match your search criteria.' : 'No team submissions have been submitted yet.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {filteredSubmissions.map((submission) => (
           <Card key={submission.id} className="overflow-hidden">
             <CardContent className="p-6">
               <div className="grid gap-6 md:grid-cols-3">
@@ -254,9 +337,9 @@ export default function TeamSubmissionsPage() {
 
                 {/* Actions and Score */}
                 <div className="space-y-4">
-                  {submission.averageScore && (
+                  {typeof submission.averageScore === "number" && (
                     <div className="text-center p-4 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold">{submission.averageScore<0 && submission.averageScore}</div>
+                      <div className="text-2xl font-bold">{submission.averageScore}</div>
                       <div className="text-sm text-muted-foreground">Average Score</div>
                     </div>
                   )}
@@ -343,18 +426,8 @@ export default function TeamSubmissionsPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* {filteredSubmissions.length === 0 && (
-        <Card>
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center text-muted-foreground">
-              <FileVideo className="h-12 w-12 mx-auto mb-4" />
-              <p>No submissions found matching your search criteria</p>
-            </div>
-          </CardContent>
-        </Card>
-      )} */}
+        </div>
+      )}
     </div>
   )
 }

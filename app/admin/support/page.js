@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Send, Search, Filter, MessageCircle, Clock, CheckCircle, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -8,15 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { chatAPI } from "@/services/api"
 
 /**
  * Chat Support Page for Administrators
@@ -28,99 +22,52 @@ export default function SupportPage() {
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [newMessage, setNewMessage] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
+  const [tickets, setTickets] = useState([])
+  const [stats, setStats] = useState({ totalTickets: 0, activeTickets: 0, resolvedTickets: 0, closedTickets: 0 })
+  const [loading, setLoading] = useState(false)
 
-  // Sample support tickets
-  const supportTickets = [
-    {
-      id: 1,
-      title: "Unable to submit project video",
-      user: "Team Alpha",
-      userType: "team",
-      priority: "high",
-      status: "open",
-      lastMessage: "The upload keeps failing after 50%",
-      timestamp: "2024-01-15 14:30",
-      messages: [
-        {
-          id: 1,
-          sender: "Team Alpha",
-          message: "Hi, we're having trouble uploading our project video. It keeps failing after reaching 50%.",
-          timestamp: "2024-01-15 14:30",
-          isAdmin: false,
-        },
-        {
-          id: 2,
-          sender: "Admin",
-          message:
-            "Hello! I'm sorry to hear about the upload issue. Can you tell me the file size and format of your video?",
-          timestamp: "2024-01-15 14:35",
-          isAdmin: true,
-        },
-        {
-          id: 3,
-          sender: "Team Alpha",
-          message:
-            "The file is 2.5GB and in MP4 format. We've tried multiple times but it always stops at the same point.",
-          timestamp: "2024-01-15 14:40",
-          isAdmin: false,
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Evaluation criteria clarification",
-      user: "Dr. Sarah Johnson",
-      userType: "evaluator",
-      priority: "medium",
-      status: "pending",
-      lastMessage: "Need clarification on scoring rubric",
-      timestamp: "2024-01-15 12:15",
-      messages: [
-        {
-          id: 1,
-          sender: "Dr. Sarah Johnson",
-          message:
-            "Could you provide more details about the 'Innovation' criteria? I want to ensure I'm scoring consistently.",
-          timestamp: "2024-01-15 12:15",
-          isAdmin: false,
-        },
-      ],
-    },
-    {
-      id: 3,
-      title: "Account approval status",
-      user: "Prof. Michael Chen",
-      userType: "evaluator",
-      priority: "low",
-      status: "resolved",
-      lastMessage: "Thank you for the quick approval!",
-      timestamp: "2024-01-14 16:45",
-      messages: [
-        {
-          id: 1,
-          sender: "Prof. Michael Chen",
-          message: "Hi, I submitted my evaluator application 3 days ago. Could you please check the status?",
-          timestamp: "2024-01-14 10:00",
-          isAdmin: false,
-        },
-        {
-          id: 2,
-          sender: "Admin",
-          message:
-            "Hello Professor Chen! I've reviewed your application and you've been approved. Welcome to the platform!",
-          timestamp: "2024-01-14 16:30",
-          isAdmin: true,
-        },
-        {
-          id: 3,
-          sender: "Prof. Michael Chen",
-          message: "Thank you for the quick approval!",
-          timestamp: "2024-01-14 16:45",
-          isAdmin: false,
-        },
-      ],
-    },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Fetch support chats and stats using chat API
+        const [chatsRes, statsRes] = await Promise.all([
+          chatAPI.getAllSupportChats(),
+          chatAPI.getSupportStats()
+        ])
+        
+        const chats = chatsRes?.data?.data || []
+        const statsData = statsRes?.data?.data?.overview || {}
+        
+        // Transform chat data to match our UI structure
+        const transformedTickets = chats.map((chat) => ({
+          id: chat._id,
+          title: chat.title,
+          user: chat.participants?.[0]?.name || "User",
+          userType: chat.userType || chat.participants?.[0]?.role || "user",
+          priority: chat.priority,
+          status: chat.status,
+          lastMessage: chat.messages?.[chat.messages.length - 1]?.content || "No messages yet",
+          timestamp: chat.lastMessageDate ? new Date(chat.lastMessageDate).toLocaleString() : "",
+          messages: chat.messages?.map((m) => ({
+            id: m._id,
+            sender: m.sender?.name || m.senderName || "User",
+            message: m.content,
+            timestamp: m.timestamp ? new Date(m.timestamp).toLocaleString() : "",
+            isAdmin: m.isAdmin || m.sender?.role === "admin",
+          })) || [],
+        }))
+        
+        setTickets(transformedTickets)
+        setStats(statsData)
+      } catch (e) {
+        console.error("Failed to fetch chat data", e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   const getPriorityBadge = (priority) => {
     switch (priority) {
@@ -137,12 +84,12 @@ export default function SupportPage() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "open":
-        return <Badge className="bg-blue-100 text-blue-800">Open</Badge>
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+      case "active":
+        return <Badge className="bg-blue-100 text-blue-800">Active</Badge>
       case "resolved":
         return <Badge className="bg-green-100 text-green-800">Resolved</Badge>
+      case "closed":
+        return <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -158,19 +105,39 @@ export default function SupportPage() {
     alert("Message sent successfully!")
   }
 
-  const handleStatusChange = (ticketId, newStatus) => {
-    console.log(`Changing ticket ${ticketId} status to ${newStatus}`)
-    // Would update ticket status in production
-    alert(`Ticket status changed to ${newStatus}`)
+  const handleStatusChange = async (ticketId, newStatus) => {
+    try {
+      setLoading(true)
+      // Update chat status in database using chat API
+      await chatAPI.updateChatStatus(ticketId, { status: newStatus })
+      
+      // Update local state to reflect the change
+      setTickets(prevTickets => 
+        prevTickets.map(ticket => 
+          ticket.id === ticketId 
+            ? { ...ticket, status: newStatus }
+            : ticket
+        )
+      )
+      
+      // Update selected ticket if it's the current one
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(prev => ({ ...prev, status: newStatus }))
+      }
+      
+      console.log(`Ticket ${ticketId} status changed to ${newStatus}`)
+    } catch (error) {
+      console.error('Failed to update ticket status:', error)
+      alert(`Failed to update status: ${error?.response?.data?.message || error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Statistics
-  const stats = {
-    totalTickets: supportTickets.length,
-    openTickets: supportTickets.filter((t) => t.status === "open").length,
-    pendingTickets: supportTickets.filter((t) => t.status === "pending").length,
-    resolvedTickets: supportTickets.filter((t) => t.status === "resolved").length,
-  }
+  const filteredTickets = tickets.filter((t) =>
+    t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.user.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6">
@@ -192,20 +159,20 @@ export default function SupportPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open</CardTitle>
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.openTickets}</div>
+            <div className="text-2xl font-bold text-blue-600">{stats.activeTickets}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Closed</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendingTickets}</div>
+            <div className="text-2xl font-bold text-gray-600">{stats.closedTickets}</div>
           </CardContent>
         </Card>
         <Card>
@@ -242,15 +209,15 @@ export default function SupportPage() {
                 <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>All Tickets</DropdownMenuItem>
-                <DropdownMenuItem>Open</DropdownMenuItem>
-                <DropdownMenuItem>Pending</DropdownMenuItem>
+                <DropdownMenuItem>Active</DropdownMenuItem>
                 <DropdownMenuItem>Resolved</DropdownMenuItem>
+                <DropdownMenuItem>Closed</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
           <div className="space-y-2">
-            {supportTickets.map((ticket) => (
+            {filteredTickets.map((ticket) => (
               <Card
                 key={ticket.id}
                 className={`cursor-pointer transition-colors ${
@@ -296,19 +263,28 @@ export default function SupportPage() {
                     {getStatusBadge(selectedTicket.status)}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          Change Status
+                        <Button variant="outline" size="sm" disabled={loading}>
+                          {loading ? "Updating..." : "Change Status"}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleStatusChange(selectedTicket.id, "open")}>
-                          Mark as Open
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(selectedTicket.id, "active")}
+                          disabled={selectedTicket.status === "active" || loading}
+                        >
+                          Mark as Active
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(selectedTicket.id, "pending")}>
-                          Mark as Pending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(selectedTicket.id, "resolved")}>
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(selectedTicket.id, "resolved")}
+                          disabled={selectedTicket.status === "resolved" || loading}
+                        >
                           Mark as Resolved
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusChange(selectedTicket.id, "closed")}
+                          disabled={selectedTicket.status === "closed" || loading}
+                        >
+                          Mark as Closed
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -346,7 +322,49 @@ export default function SupportPage() {
               </CardContent>
 
               <div className="border-t p-4">
-                <form onSubmit={handleSendMessage} className="flex gap-2">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!newMessage.trim() || !selectedTicket) return
+                  try {
+                    await chatAPI.sendMessage(selectedTicket.id, { content: newMessage.trim() })
+                    setNewMessage("")
+                    // Refresh selected ticket
+                    const res = await chatAPI.getChat(selectedTicket.id)
+                    const chat = res?.data?.data
+                    setSelectedTicket({
+                      id: chat._id,
+                      title: chat.title,
+                      user: chat.participants?.[0]?.name || "User",
+                      userType: chat.userType || chat.participants?.[0]?.role || "user",
+                      priority: chat.priority,
+                      status: chat.status,
+                      lastMessage: chat.messages?.[chat.messages.length - 1]?.content || "No messages yet",
+                      timestamp: chat.lastMessageDate ? new Date(chat.lastMessageDate).toLocaleString() : "",
+                      messages: chat.messages?.map((m) => ({
+                        id: m._id,
+                        sender: m.sender?.name || m.senderName || "User",
+                        message: m.content,
+                        timestamp: m.timestamp ? new Date(m.timestamp).toLocaleString() : "",
+                        isAdmin: m.isAdmin || m.sender?.role === "admin",
+                      })) || [],
+                    })
+                    
+                    // Also refresh the tickets list to show updated last message
+                    setTickets(prevTickets => 
+                      prevTickets.map(ticket => 
+                        ticket.id === selectedTicket.id 
+                          ? {
+                              ...ticket,
+                              lastMessage: chat.messages?.[chat.messages.length - 1]?.content || "No messages yet",
+                              timestamp: chat.lastMessageDate ? new Date(chat.lastMessageDate).toLocaleString() : "",
+                            }
+                          : ticket
+                      )
+                    )
+                  } catch (err) {
+                    console.error("Failed to send message", err)
+                  }
+                }} className="flex gap-2">
                   <Textarea
                     placeholder="Type your response..."
                     value={newMessage}
@@ -355,7 +373,7 @@ export default function SupportPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault()
-                        handleSendMessage(e)
+                        e.currentTarget.form?.requestSubmit()
                       }
                     }}
                   />
